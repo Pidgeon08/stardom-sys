@@ -17,7 +17,9 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ## Dependencies
 
-Tailwind Css: npm install tailwindcss @tailwindcss/vite
-              npm install -D tw-animate-css
-React Route: npm install react-route
+Tailwind Css: </br>npm install tailwindcss @tailwindcss/vite </br>
+              npm install -D tw-animate-css </br>
+
+              
+React Route: </br> npm install react-route
 
