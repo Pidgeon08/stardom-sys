@@ -12,7 +12,6 @@ export default function DashboardAdmin() {
 
   return (
     <div className="min-h-screen flex">
-      <NavBar />
       <main className="flex-1 p-8 bg-slate-50">
         <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
         {/* dashboard widgets here */}

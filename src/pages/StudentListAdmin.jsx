@@ -69,7 +69,6 @@ export default function StudentListAdmin() {
   return (
 
     <div className='min-h-screen flex'>
-        <NavBar/>
         <main className="flex-1 p-8 bg-slate-50">
              <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Manage Students</h1>

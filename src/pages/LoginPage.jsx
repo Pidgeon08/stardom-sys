@@ -16,7 +16,7 @@ export default function LoginPage() {
     const users = [
       {uname: 'admin', pword: 'admin123', utype: 'admin', legname: 'Pidgeon'},
       {uname: 'teacher', pword: 'teacher123', utype: 'teacher', legname: 'Jane Doe'},
-      {uname: 'student', paord: 'student123', utype: 'student', legname: 'Seth Lowel'},  
+      {uname: 'student', pword: 'student123', utype: 'student', legname: 'Seth Lowel'},  
     ]
 
       const user = users.find(u => u.uname === uname && u.pword === pword);
