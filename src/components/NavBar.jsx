@@ -10,7 +10,7 @@ export default function NavBar() {
   };
 
   return (
-    <div className="w-64 bg-orange-800 text-white flex flex-col h-screen sticky top-0">
+    <div className="w-64 bg-orange-800 text-white flex flex-col h-screen sticky top-0 overflow-hidden overflow-y-hidden pointer-events-auto">
       <div className="p-6 border-b border-orange-700">
         <h2 className="text-2xl font-bold">Stardom Music Center</h2>
         <p className="text-sm text-orange-200"></p>
@@ -43,6 +43,18 @@ export default function NavBar() {
           <span>Student List</span>
         </NavLink>
         <NavLink
+          to="/admin/teacherlist"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition ${
+              isActive
+                ? "bg-orange-600 text-white"
+                : "text-orange-200 hover:bg-orange-700 hover:text-white"
+            }`
+          }
+        >
+          <span>Teacher List</span>
+        </NavLink>
+        <NavLink
           to="/admin/courses"
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition ${
@@ -66,6 +78,7 @@ export default function NavBar() {
         >
           <span>Schedule</span>
         </NavLink>
+        
       </nav>
 
       {/* Logout pinned to bottom */}
