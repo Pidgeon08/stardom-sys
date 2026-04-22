@@ -67,6 +67,18 @@ export default function NavBar() {
           <span>Courses</span>
         </NavLink>
         <NavLink
+          to="/admin/billing"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition ${
+              isActive
+                ? "bg-orange-600 text-white"
+                : "text-orange-200 hover:bg-orange-700 hover:text-white"
+            }`
+          }
+        >
+          <span>Billins</span>
+        </NavLink>
+        <NavLink
           to="/admin/schedule"
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition ${
