@@ -23,3 +23,7 @@ Tailwind Css: </br>npm install tailwindcss @tailwindcss/vite </br>
               
 React Route: </br> npm install react-route
 
+Additional: </br> npm install lucide-react </br>
+        
+
+
