@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { NavLink } from "react-router-dom"
-import { LogOut, Menu, X, Music } from "lucide-react"
+// Changed X to ChevronLeft for the arrow icon
+import { LogOut, Menu, ChevronLeft } from "lucide-react" 
 import ConfirmationModal from "./ConfirmationModal"
 
 export default function NavBar({ user, navItems, bgColor, activeClass, onLogout }) {
@@ -10,16 +11,17 @@ export default function NavBar({ user, navItems, bgColor, activeClass, onLogout 
   return (
     <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} ${bgColor} text-white flex flex-col transition-all duration-300 h-full shrink-0`}>
       
-      {/* Logo + toggle */}
+      {/* Upper Section */}
       <div className="flex items-center justify-between p-4 border-b border-white/20">
         {sidebarOpen && (
           <div className="flex items-center gap-2">
-            <Music size={22} />
-            <span className="font-bold text-sm leading-tight">Stardom<br/>Musical Center</span>
+            {/* Changed back to plain text STARDOM */}
+            <span className="font-black text-xl tracking-tighter italic">STARDOM</span>
           </div>
         )}
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1 rounded hover:bg-white/20 transition ml-auto">
-          {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          {/* Changed X to ChevronLeft pointing left < */}
+          {sidebarOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
@@ -61,7 +63,6 @@ export default function NavBar({ user, navItems, bgColor, activeClass, onLogout 
         </button>
       </div>
 
-      {/* Logout Confirmation Modal */}
       <ConfirmationModal
         isOpen={showLogoutModal}
         title="Logout"
