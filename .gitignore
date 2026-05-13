@@ -1,0 +1,39 @@
+# Ignore compiled files
+node_modules/
+dist/
+build/
+
+# Ignore logs and temporary files
+logs/
+*.log
+*.tmp
+
+# Ignore IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sln
+*.suo
+*.user
+*.userprefs
+
+# Ignore large media files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.ico
+*.svg
+*.pdf
+*.mp4
+*.mov
+*.avi
+*.wav
+*.mp3
+*.ogg
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
