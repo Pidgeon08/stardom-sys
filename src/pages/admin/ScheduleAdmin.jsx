@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Archive, Clock, ChevronLeft, ChevronRight, X, CalendarDays } from 'lucide-react'
-import { getSchedules, createSchedule, updateSchedule, getCourses, getTeachers, getStudents, archiveSchedule } from '../../api/core'
+import { Plus, Edit, Trash2, Clock, ChevronLeft, ChevronRight, X, CalendarDays } from 'lucide-react'
+import { getSchedules, createSchedule, updateSchedule, getCourses, getTeachers, getStudents, deleteSchedule } from '../../api/core'
 import api from '../../api/axios'
 import ConfirmationModal from '../../components/ConfirmationModal'
 
@@ -39,7 +39,14 @@ const inputTimeToDisplay = (inputTime) => {
   return `${displayHour}:${m.toString().padStart(2,'0')} ${period}`
 }
 
-// Get the day name from a date string
+// Format date to YYYY-MM-DD for input fields
+const formatDateForInput = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const dateToDayName = (dateStr) => {
   if (!dateStr) return 'Monday'
   const d = new Date(dateStr + 'T00:00:00')
@@ -59,14 +66,12 @@ export default function ScheduleAdmin() {
   const [showForm, setShowForm]   = useState(false)
   const [editingSchedule, setEditing] = useState(null)
   const [showStudentModal, setShowStudentModal] = useState(false)
-  const [showArchiveModal, setShowArchiveModal] = useState(false)
-  const [showArchiveListModal, setShowArchiveListModal] = useState(false)
-  const [archivingScheduleId, setArchivingScheduleId] = useState(null)
-  const [archiveLoading, setArchiveLoading] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletingScheduleId, setDeletingScheduleId] = useState(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
-  // selectedDate: ISO date string (YYYY-MM-DD), selectedTime: HH:MM
+  // selectedDate: ISO date string (YYYY-MM-DD)
   const [selectedDate, setSelectedDate] = useState('')
-  const [selectedTime, setSelectedTime] = useState('07:30')
 
   const [formData, setFormData]   = useState({
     day: 'Monday', time: '7:30 AM', course: '', teacher: '', sessionType: 'Single', student_ids: []
@@ -86,7 +91,7 @@ export default function ScheduleAdmin() {
   }, [])
 
   const currentDayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][currentDate.getDay()]
-  const currentDaySchedules = schedules.filter(s => s.active && s.day === currentDayName)
+  const currentDaySchedules = schedules.filter(s => s.day === currentDayName)
   const schedulesByTime = Object.fromEntries(currentDaySchedules.map(s => [s.time, s]))
 
   const enrolledStudents = formData.course
@@ -108,11 +113,16 @@ export default function ScheduleAdmin() {
     setFormData(prev => ({ ...prev, day: dayName }))
   }
 
-  const handleTimePickerChange = (timeStr) => {
-    setSelectedTime(timeStr)
-    // Snap to nearest slot for display
-    const displayTime = inputTimeToDisplay(timeStr)
-    setFormData(prev => ({ ...prev, time: displayTime }))
+  const handleTimeChange = (timeStr) => {
+    setFormData(prev => ({ ...prev, time: timeStr }))
+  }
+
+  const isSlotBooked = (slot) => {
+    return schedules.some(s => 
+      s.day === formData.day && 
+      s.time === slot && 
+      s.id !== editingSchedule?.id
+    )
   }
 
   const handleSubmit = async (e) => {
@@ -149,9 +159,7 @@ export default function ScheduleAdmin() {
 
   const handleEdit = (schedule) => {
     setEditing(schedule)
-    const inputTime = displayTimeToInput(schedule.time)
-    setSelectedTime(inputTime)
-    setSelectedDate('')
+    setSelectedDate(formatDateForInput(currentDate))
     setFormData({
       day: schedule.day,
       time: schedule.time,
@@ -163,23 +171,23 @@ export default function ScheduleAdmin() {
     setShowForm(true)
   }
 
-  const handleArchive = (id) => {
-    setArchivingScheduleId(id)
-    setShowArchiveModal(true)
+  const handleDelete = (id) => {
+    setDeletingScheduleId(id)
+    setShowDeleteModal(true)
   }
 
-  const confirmArchive = async () => {
+  const confirmDelete = async () => {
     try {
-      setArchiveLoading(true)
-      await archiveSchedule(archivingScheduleId)
-      setSchedules(schedules.map(s => s.id === archivingScheduleId ? { ...s, active: false } : s))
-      setShowArchiveModal(false)
-      setArchivingScheduleId(null)
+      setDeleteLoading(true)
+      await deleteSchedule(deletingScheduleId)
+      setSchedules(schedules.filter(s => s.id !== deletingScheduleId))
+      setShowDeleteModal(false)
+      setDeletingScheduleId(null)
     } catch (err) {
-      alert('Failed to archive')
+      alert('Failed to delete schedule')
       console.error(err)
     } finally {
-      setArchiveLoading(false)
+      setDeleteLoading(false)
     }
   }
 
@@ -187,21 +195,17 @@ export default function ScheduleAdmin() {
     setShowForm(false)
     setEditing(null)
     setShowStudentModal(false)
-    setSelectedDate('')
-    setSelectedTime('07:30')
+    setSelectedDate(formatDateForInput(currentDate))
     setFormData({ day:'Monday', time:'7:30 AM', course:'', teacher:'', sessionType:'Single', student_ids:[] })
   }
 
   const openAddForm = (prefillSlot = null, prefillDay = null) => {
+    setSelectedDate(formatDateForInput(currentDate))
     if (prefillSlot) {
-      const inputTime = displayTimeToInput(prefillSlot)
-      setSelectedTime(inputTime)
       setFormData(prev => ({ ...prev, time: prefillSlot, day: prefillDay || currentDayName }))
     }
     setShowForm(true)
   }
-
-  const archivedSchedules = schedules.filter(s => !s.active)
 
   if (loading) return <div className="p-8 text-gray-500">Loading schedule...</div>
 
@@ -211,13 +215,6 @@ export default function ScheduleAdmin() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Manage Schedule</h1>
         <div className="flex items-center gap-3">
-          {/* Archive List Button — white with orange outline */}
-          <button
-            onClick={() => setShowArchiveListModal(true)}
-            className="flex items-center gap-2 bg-white text-orange-600 border-2 border-orange-600 px-4 py-2 rounded-lg hover:bg-orange-50 transition font-medium"
-          >
-            <Archive size={18} /> View Archives
-          </button>
           {/* Add Schedule Button */}
           <button
             onClick={() => openAddForm()}
@@ -289,8 +286,8 @@ export default function ScheduleAdmin() {
                           <button onClick={() => handleEdit(schedule)} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm">
                             <Edit size={14} /> Edit
                           </button>
-                          <button onClick={() => handleArchive(schedule.id)} className="flex items-center gap-1 text-orange-600 hover:text-orange-800 text-sm">
-                            <Archive size={14} /> Archive
+                          <button onClick={() => handleDelete(schedule.id)} className="flex items-center gap-1 text-red-600 hover:text-red-800 text-sm">
+                            <Trash2 size={14} /> Delete
                           </button>
                         </div>
                       </td>
@@ -328,12 +325,8 @@ export default function ScheduleAdmin() {
 
             <form onSubmit={handleSubmit} className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-
-                {/* Date picker — replaces Day dropdown */}
                 <div>
-                  <label className="block text-gray-700 mb-2 font-medium">
-                    Date <span className="text-sm text-gray-400 font-normal">(day auto-detected)</span>
-                  </label>
+                  <label className="block text-gray-700 mb-2 font-medium">Date</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-500 pointer-events-none">
                       <CalendarDays size={16} />
@@ -346,31 +339,32 @@ export default function ScheduleAdmin() {
                     />
                   </div>
                   {formData.day && (
-                    <p className="text-xs text-orange-600 mt-1 font-medium">Day: {formData.day}</p>
+                    <p className="text-xs text-orange-600 mt-1 font-medium">Detected Day: {formData.day}</p>
                   )}
                 </div>
 
-                {/* Time picker */}
                 <div>
-                  <label className="block text-gray-700 mb-2 font-medium">
-                    Time Slot <span className="text-sm text-gray-400 font-normal">(snaps to 45-min slot)</span>
-                  </label>
+                  <label className="block text-gray-700 mb-2 font-medium">Time Slot</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-500 pointer-events-none">
                       <Clock size={16} />
                     </span>
-                    <input
-                      type="time"
-                      value={selectedTime}
-                      onChange={e => handleTimePickerChange(e.target.value)}
-                      min="07:30"
-                      max="18:00"
-                      className="w-full pl-9 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
+                    <select
+                      value={formData.time}
+                      onChange={e => handleTimeChange(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+                      required
+                    >
+                      {timeSlots.map(slot => {
+                        const booked = isSlotBooked(slot);
+                        return (
+                          <option key={slot} value={slot} disabled={booked}>
+                            {slot} {booked ? '(Booked)' : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
                   </div>
-                  {formData.time && (
-                    <p className="text-xs text-orange-600 mt-1 font-medium">Slot: {formData.time}</p>
-                  )}
                 </div>
 
                 <div>
@@ -463,68 +457,19 @@ export default function ScheduleAdmin() {
         </div>
       )}
 
-      {/* ── Archive List Modal ── */}
-      {showArchiveListModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col">
-            <div className="flex justify-between items-center px-6 py-4 border-b">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Archive size={20} className="text-orange-600" /> Archived Schedules
-              </h2>
-              <button onClick={() => setShowArchiveListModal(false)} className="text-gray-400 hover:text-gray-600 transition">
-                <X size={22} />
-              </button>
-            </div>
-            <div className="overflow-y-auto flex-1">
-              {archivedSchedules.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">No archived schedules yet.</div>
-              ) : (
-                <table className="w-full">
-                  <thead className="bg-gray-50 sticky top-0">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Day</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Course</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Teacher</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {archivedSchedules.map(s => (
-                      <tr key={s.id} className="opacity-60 hover:opacity-100 transition-opacity">
-                        <td className="px-6 py-4 text-sm">{s.day}</td>
-                        <td className="px-6 py-4 text-sm">{s.time}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{s.course_name}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{s.teacher_name}</td>
-                        <td className="px-6 py-4">
-                          <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">{s.sessionType}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-            <div className="px-6 py-4 border-t bg-gray-50 rounded-b-xl">
-              <p className="text-sm text-gray-500">{archivedSchedules.length} archived schedule{archivedSchedules.length !== 1 ? 's' : ''}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Archive Confirmation Modal */}
+      {/* Delete Confirmation Modal */}
       <ConfirmationModal
-        isOpen={showArchiveModal}
-        title="Archive Schedule"
-        message="Are you sure you want to archive this time slot? It will no longer be available for bookings."
-        confirmText="Archive"
-        onConfirm={confirmArchive}
+        isOpen={showDeleteModal}
+        title="Delete Schedule"
+        message="Are you sure you want to permanently delete this schedule slot? This action cannot be undone."
+        confirmText="Delete"
+        onConfirm={confirmDelete}
         onCancel={() => {
-          setShowArchiveModal(false)
-          setArchivingScheduleId(null)
+          setShowDeleteModal(false)
+          setDeletingScheduleId(null)
         }}
         isDangerous={true}
-        isLoading={archiveLoading}
+        isLoading={deleteLoading}
       />
     </div>
   )

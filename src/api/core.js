@@ -30,6 +30,7 @@ export const getSchedules   = ()        => api.get('/schedules/')
 export const createSchedule = (data)    => api.post('/schedules/', data)
 export const updateSchedule = (id,data) => api.patch(`/schedules/${id}/`, data)
 export const archiveSchedule= (id)      => api.patch(`/schedules/${id}/archive/`)
+export const deleteSchedule = (id)      => api.delete(`/schedules/${id}/`)
 
 export const getBillings    = ()        => api.get('/billings/')
 export const createBilling  = (data)    => api.post('/billings/', data)

@@ -2,12 +2,17 @@ import { useState, useEffect } from "react";
 import { Plus, Edit, Archive, UserCircle, Loader, X } from "lucide-react";
 import { getTeachers, createTeacher, updateTeacher, archiveTeacher } from "../../api/core";
 import api from "../../api/axios";
+import ConfirmationModal from "../../components/ConfirmationModal";
 
 export default function ManageTeachers() {
   const [teachers, setTeachers] = useState([]);
   const [specializations, setSpecializations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [teacherToArchive, setTeacherToArchive] = useState(null);
+  
   const DEFAULT_PASSWORD = "Stardom123";
 
   useEffect(() => {
@@ -44,28 +49,61 @@ export default function ManageTeachers() {
     last_name: "",
     username: "",
     email: "",
-    password: "teacher123",
+    password: DEFAULT_PASSWORD,
     phone: "",
     specialization_ids: [],
     experience: 1,
   });
 
+  const resetForm = () => {
+    setFormData({
+      first_name: "",
+      last_name: "",
+      username: "",
+      email: "",
+      password: DEFAULT_PASSWORD,
+      phone: "",
+      specialization_ids: [],
+      experience: 1,
+    });
+    setEditingTeacher(null);
+    setError("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
+    setError("");
 
     try {
+      // Prepare clean payload
+      const payload = { ...formData };
+      
       if (editingTeacher) {
-        await updateTeacher(editingTeacher.id, formData);
-      } else {
-        await createTeacher(formData);
+        // Remove fields that often cause 500 errors on profile updates
+        delete payload.password;
+        delete payload.username;
       }
+
+      if (editingTeacher) {
+        await updateTeacher(editingTeacher.id, payload);
+      } else {
+        await createTeacher(payload);
+      }
+      
       await fetchData();
       setShowForm(false);
-      setEditingTeacher(null);
-      setFormData({ first_name: "", last_name: "", username: "", email: "", password: "teacher123", phone: "", specialization_ids: [], experience: 1 });
+      resetForm();
     } catch (err) {
-      setError("Failed to save teacher");
+      const msg = err.response?.data?.detail 
+        || err.response?.data?.error 
+        || (typeof err.response?.data === 'string' ? err.response?.data : null)
+        || err.message 
+        || "Failed to save teacher";
+      setError(msg);
       console.error(err);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -76,22 +114,34 @@ export default function ManageTeachers() {
       first_name: teacher.user?.first_name || "",
       last_name: teacher.user?.last_name || "",
       email: teacher.email || "",
+      // Do NOT include password on edit to avoid accidental 500s
       phone: teacher.phone || "",
       specialization_ids: teacher.specializations?.map(s => s.id) || [],
       experience: teacher.experience || 1,
     });
+    setError("");
     setShowForm(true);
   };
 
-  const handleArchive = async (id) => {
-    if (confirm("Are you sure you want to archive this teacher?")) {
-      try {
-        await archiveTeacher(id);
-        await fetchData();
-      } catch (err) {
-        setError("Failed to archive teacher");
-        console.error(err);
-      }
+  const handleOpenAdd = () => {
+    resetForm();
+    setShowForm(true);
+  };
+
+  const handleOpenArchive = (id) => {
+    setTeacherToArchive(id);
+    setShowArchiveModal(true);
+  };
+
+  const confirmArchive = async () => {
+    try {
+      await archiveTeacher(teacherToArchive);
+      await fetchData();
+      setShowArchiveModal(false);
+      setTeacherToArchive(null);
+    } catch (err) {
+      setError("Failed to archive teacher");
+      console.error(err);
     }
   };
 
@@ -111,11 +161,10 @@ export default function ManageTeachers() {
 
   return (
     <div className="p-8">
-      {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Manage Teachers</h1>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={handleOpenAdd}
           className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition"
         >
           <Plus size={20} />
@@ -125,7 +174,7 @@ export default function ManageTeachers() {
 
       {showForm && (
   <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl flex flex-col">
+    <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh] overflow-hidden">
       <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200">
         <h2 className="text-xl font-bold text-slate-800">
           {editingTeacher ? "Edit Teacher" : "Add New Teacher"}
@@ -133,16 +182,20 @@ export default function ManageTeachers() {
         <button
           onClick={() => {
             setShowForm(false);
-            setEditingTeacher(null);
-            setFormData({ username: "", first_name: "", last_name: "", email: "", phone: "", specialization_ids: [], experience: 1 });
+            resetForm();
           }}
           className="text-slate-400 hover:text-slate-600 transition"
         >
           <X size={22} />
         </button>
       </div>
-      <form onSubmit={handleSubmit} className="flex flex-col flex-1">
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-y-auto">
         <div className="p-6">
+          {error && (
+            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm font-medium animate-shake">
+              {error}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">First Name *</label>
@@ -238,17 +291,17 @@ export default function ManageTeachers() {
         <div className="flex gap-4 px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-xl mt-auto">
           <button
             type="submit"
-            disabled={formData.specialization_ids.length === 0}
-            className="flex-1 bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition font-medium disabled:bg-orange-400"
+            disabled={formData.specialization_ids.length === 0 || submitting}
+            className="flex-1 bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition font-medium disabled:bg-orange-400 flex items-center justify-center gap-2"
           >
-            {editingTeacher ? "Update" : "Add"} Teacher
+            {submitting && <Loader size={18} className="animate-spin" />}
+            {editingTeacher ? (submitting ? "Updating..." : "Update Teacher") : (submitting ? "Adding..." : "Add Teacher")}
           </button>
           <button
             type="button"
             onClick={() => {
               setShowForm(false);
-              setEditingTeacher(null);
-              setFormData({ first_name: "", last_name: "", username: "", email: "", phone: "", specialization_ids: [], experience: 1 });
+              resetForm();
             }}
             className="flex-1 bg-slate-300 text-slate-800 px-6 py-2 rounded-lg hover:bg-slate-400 transition font-medium"
           >
@@ -307,7 +360,7 @@ export default function ManageTeachers() {
                       Edit
                     </button>
                     <button
-                      onClick={() => handleArchive(teacher.id)}
+                      onClick={() => handleOpenArchive(teacher.id)}
                       className="flex items-center gap-1 text-orange-600 hover:text-orange-800"
                     >
                       <Archive size={16} />
@@ -356,6 +409,20 @@ export default function ManageTeachers() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showArchiveModal}
+        title="Archive Teacher"
+        message="Are you sure you want to archive this teacher? They will no longer be able to access the system."
+        confirmText="Archive"
+        onConfirm={confirmArchive}
+        onCancel={() => {
+          setShowArchiveModal(false);
+          setTeacherToArchive(null);
+        }}
+        isDangerous={true}
+      />
     </div>
   );
 }

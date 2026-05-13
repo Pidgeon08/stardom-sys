@@ -39,7 +39,8 @@ export function AuthProvider({ children }) {
         .catch((error) => {
           console.error('Session restore failed:', error)
 
-          localStorage.clear()
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
 
           setUser(null)
         })
@@ -111,7 +112,8 @@ export function AuthProvider({ children }) {
       )
 
     } finally {
-      localStorage.clear()
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
 
       setUser(null)
     }
