@@ -8,6 +8,7 @@ export default function ManageTeachers() {
   const [specializations, setSpecializations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const DEFAULT_PASSWORD = "Stardom123";
 
   useEffect(() => {
     fetchData();
@@ -39,10 +40,11 @@ export default function ManageTeachers() {
   const [showForm, setShowForm] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [formData, setFormData] = useState({
-    name: "",
+    first_name: "",
+    last_name: "",
     username: "",
     email: "",
-    password: "",
+    password: "teacher123",
     phone: "",
     specialization_ids: [],
     experience: 1,
@@ -60,7 +62,7 @@ export default function ManageTeachers() {
       await fetchData();
       setShowForm(false);
       setEditingTeacher(null);
-      setFormData({ name: "", username: "", email: "", password: "", phone: "", specialization_ids: [], experience: 1 });
+      setFormData({ first_name: "", last_name: "", username: "", email: "", password: "teacher123", phone: "", specialization_ids: [], experience: 1 });
     } catch (err) {
       setError("Failed to save teacher");
       console.error(err);
@@ -70,10 +72,10 @@ export default function ManageTeachers() {
   const handleEdit = (teacher) => {
     setEditingTeacher(teacher);
     setFormData({
-      name: teacher.name || "",
       username: teacher.user?.username || "",
+      first_name: teacher.user?.first_name || "",
+      last_name: teacher.user?.last_name || "",
       email: teacher.email || "",
-      password: "",
       phone: teacher.phone || "",
       specialization_ids: teacher.specializations?.map(s => s.id) || [],
       experience: teacher.experience || 1,
@@ -122,121 +124,141 @@ export default function ManageTeachers() {
       </div>
 
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow mb-6">
-          <h2 className="text-xl font-bold mb-4">
-            {editingTeacher ? "Edit Teacher" : "Add New Teacher"}
-          </h2>
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-gray-700 mb-2">Full Name *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-2">Username *</label>
-                <input
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                  disabled={!!editingTeacher}
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-2">Email *</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-              </div>
-              {!editingTeacher && (
-                <div>
-                  <label className="block text-gray-700 mb-2">Password *</label>
+  <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl flex flex-col">
+      <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200">
+        <h2 className="text-xl font-bold text-slate-800">
+          {editingTeacher ? "Edit Teacher" : "Add New Teacher"}
+        </h2>
+        <button
+          onClick={() => {
+            setShowForm(false);
+            setEditingTeacher(null);
+            setFormData({ username: "", first_name: "", last_name: "", email: "", phone: "", specialization_ids: [], experience: 1 });
+          }}
+          className="text-slate-400 hover:text-slate-600 transition"
+        >
+          <X size={22} />
+        </button>
+      </div>
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1">
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">First Name *</label>
+              <input
+                type="text"
+                value={formData.first_name}
+                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                placeholder="John"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Last Name *</label>
+              <input
+                type="text"
+                value={formData.last_name}
+                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                placeholder="Doe"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Username *</label>
+              <input
+                type="text"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                placeholder="johndoe"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+                disabled={!!editingTeacher}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Email *</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="john@example.com"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Phone</label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="(555) 000-0000"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Years of Experience *</label>
+              <input
+                type="number"
+                min="1"
+                max="50"
+                value={formData.experience}
+                onChange={(e) => setFormData({ ...formData, experience: parseInt(e.target.value) })}
+                placeholder="5"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Specializations *</label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-slate-50 rounded-lg">
+              {specializations.map(spec => (
+                <label key={spec.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-2 rounded transition">
                   <input
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    required
+                    type="checkbox"
+                    checked={formData.specialization_ids.includes(spec.id)}
+                    onChange={() => toggleSpecialization(spec.id)}
+                    className="w-4 h-4 text-orange-600 rounded accent-orange-600 focus:ring-2 focus:ring-orange-500"
                   />
-                </div>
-              )}
-              <div>
-                <label className="block text-gray-700 mb-2">Phone</label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-2">Years of Experience *</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={formData.experience}
-                  onChange={(e) => setFormData({ ...formData, experience: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-              </div>
+                  <span className="text-sm text-slate-700">{spec.name}</span>
+                </label>
+              ))}
             </div>
-
-            <div className="mb-4">
-              <label className="block text-gray-700 mb-2 font-medium">Specializations *</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {specializations.map(spec => (
-                  <label key={spec.id} className="flex items-center gap-2 p-3 border rounded-lg hover:bg-orange-50 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.specialization_ids.includes(spec.id)}
-                      onChange={() => toggleSpecialization(spec.id)}
-                      className="w-4 h-4 text-orange-600 rounded focus:ring-2 focus:ring-orange-500"
-                    />
-                    <span className="text-gray-700">{spec.name}</span>
-                  </label>
-                ))}
-              </div>
-              {formData.specialization_ids.length === 0 && (
-                <p className="text-red-600 text-sm mt-2">Please select at least one specialization</p>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={formData.specialization_ids.length === 0}
-                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition disabled:bg-gray-400"
-              >
-                {editingTeacher ? "Update" : "Add"} Teacher
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowForm(false);
-                  setEditingTeacher(null);
-                  setFormData({ name: "", username: "", email: "", password: "", phone: "", specialization_ids: [], experience: 1 });
-                }}
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+            {formData.specialization_ids.length === 0 && (
+              <p className="text-red-600 text-xs mt-2">Please select at least one specialization</p>
+            )}
+          </div>
         </div>
-      )}
+
+        <div className="flex gap-4 px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-xl mt-auto">
+          <button
+            type="submit"
+            disabled={formData.specialization_ids.length === 0}
+            className="flex-1 bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition font-medium disabled:bg-orange-400"
+          >
+            {editingTeacher ? "Update" : "Add"} Teacher
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowForm(false);
+              setEditingTeacher(null);
+              setFormData({ first_name: "", last_name: "", username: "", email: "", phone: "", specialization_ids: [], experience: 1 });
+            }}
+            className="flex-1 bg-slate-300 text-slate-800 px-6 py-2 rounded-lg hover:bg-slate-400 transition font-medium"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full">
@@ -256,7 +278,11 @@ export default function ManageTeachers() {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
                     <UserCircle size={20} className="text-orange-600" />
-                    <span className="font-medium">{teacher.name}</span>
+                    <span className="font-medium">
+                      {teacher.user && teacher.user.first_name && teacher.user.last_name
+                        ? `${teacher.user.first_name} ${teacher.user.last_name}`
+                        : 'Unknown'}
+                    </span>
                   </div>
                 </td>
                 <td className="px-6 py-4 text-gray-600">{teacher.email}</td>
@@ -311,7 +337,7 @@ export default function ManageTeachers() {
               <tbody className="divide-y divide-gray-200">
                 {archivedTeachers.map((teacher) => (
                   <tr key={teacher.id} className="opacity-50">
-                    <td className="px-6 py-4">{teacher.name}</td>
+                    <td className="px-6 py-4">{teacher.user?.first_name} {teacher.user?.last_name}</td>
                     <td className="px-6 py-4 text-gray-600">{teacher.email}</td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-2">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import NavBar from '../../components/NavBar'
-import { Plus, User, Edit, Archive, Loader } from 'lucide-react'
+import { Plus, User, Edit, Archive, Loader, X } from 'lucide-react'
 import { getStudents, createStudent, updateStudent, archiveStudent, getCourses } from '../../api/core'
 
 export default function StudentListAdmin() {
@@ -114,61 +114,78 @@ export default function StudentListAdmin() {
       </div>
 
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow mb-6">
-          <h2 className="text-xl font-bold mb-4">
-            {editingStudent ? "Edit Student" : "Add New Student"}
-          </h2>
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="fixed inset-0  bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-800">
+                {editingStudent ? "Edit Student" : "Add New Student"}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingStudent(null);
+                  setFormData({ username: "", email: "", first_name: "", last_name: "", course_ids: [] });
+                }}
+                className="text-slate-400 hover:text-slate-600 transition"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
-                <label className="block text-gray-700 mb-2">Username</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">First Name *</label>
+                <input
+                  type="text"
+                  value={formData.first_name}
+                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                  placeholder="John"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Last Name *</label>
+                <input
+                  type="text"
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  placeholder="Doe"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Username *</label>
                 <input
                   type="text"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="johndoe"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                   disabled={editingStudent}
                 />
               </div>
               <div>
-                <label className="block text-gray-700 mb-2">Email</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Email *</label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-2">First Name</label>
-                <input
-                  type="text"
-                  value={formData.first_name}
-                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-2">Last Name</label>
-                <input
-                  type="text"
-                  value={formData.last_name}
-                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="john@example.com"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                 />
               </div>
             </div>
 
             {/* Courses Section */}
-            <div className="mb-4">
-              <label className="block text-gray-700 mb-3 font-medium">Enroll in Courses</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg">
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Enroll in Courses</label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-slate-50 rounded-lg">
                 {courses.map((course) => (
-                  <label key={course.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded transition">
+                  <label key={course.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-2 rounded transition">
                     <input
                       type="checkbox"
                       checked={formData.course_ids.includes(course.id)}
@@ -187,16 +204,16 @@ export default function StudentListAdmin() {
                       }}
                       className="w-4 h-4 rounded accent-orange-600"
                     />
-                    <span className="text-sm text-gray-700">{course.name}</span>
+                    <span className="text-sm text-slate-700">{course.name}</span>
                   </label>
                 ))}
               </div>
-              {courses.length === 0 && <p className="text-gray-500 text-sm mt-2">No courses available</p>}
+              {courses.length === 0 && <p className="text-slate-500 text-xs mt-2">No courses available</p>}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-4 px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-xl">
               <button
                 type="submit"
-                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition"
+                className="flex-1 bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition font-medium"
               >
                 {editingStudent ? "Update" : "Add"} Student
               </button>
@@ -207,12 +224,13 @@ export default function StudentListAdmin() {
                   setEditingStudent(null);
                   setFormData({ username: "", email: "", first_name: "", last_name: "", course_ids: [] });
                 }}
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition"
+                className="flex-1 bg-slate-300 text-slate-800 px-6 py-2 rounded-lg hover:bg-slate-400 transition font-medium"
               >
                 Cancel
               </button>
             </div>
-          </form>
+            </form>
+          </div>
         </div>
       )}
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Archive, Music, Loader } from "lucide-react";
+import { Plus, Edit, Archive, Music, Loader, X } from "lucide-react";
 import { getCourses, createCourse, updateCourse, archiveCourse } from "../../api/core";
 import ConfirmationModal from "../../components/ConfirmationModal";
 
@@ -107,49 +107,64 @@ export default function ManageCourses() {
       </div>
 
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow mb-6">
-          <h2 className="text-xl font-bold mb-4">
-            {editingCourse ? "Edit Course" : "Add New Course"}
-          </h2>
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-800">
+                {editingCourse ? "Edit Course" : "Add New Course"}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingCourse(null);
+                  setFormData({ name: "", description: "", levels: 1 });
+                }}
+                className="text-slate-400 hover:text-slate-600 transition"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
-                <label className="block text-gray-700 mb-2">Course Name *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Course Name *</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Piano Basics"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                 />
               </div>
               <div>
-                <label className="block text-gray-700 mb-2">Number of Levels *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Number of Levels *</label>
                 <input
                   type="number"
                   min="1"
                   max="10"
                   value={formData.levels}
                   onChange={(e) => setFormData({ ...formData, levels: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="3"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                 />
               </div>
             </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 mb-2">Description (Optional)</label>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Description (Optional)</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 rows={3}
                 placeholder="Enter course description (optional)"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-4 px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-xl">
               <button
                 type="submit"
-                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition"
+                className="flex-1 bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition font-medium"
               >
                 {editingCourse ? "Update" : "Add"} Course
               </button>
@@ -160,12 +175,13 @@ export default function ManageCourses() {
                   setEditingCourse(null);
                   setFormData({ name: "", description: "", levels: 1 });
                 }}
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition"
+                className="flex-1 bg-slate-300 text-slate-800 px-6 py-2 rounded-lg hover:bg-slate-400 transition font-medium"
               >
                 Cancel
               </button>
             </div>
-          </form>
+            </form>
+          </div>
         </div>
       )}
 

@@ -184,20 +184,14 @@ class TeacherViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         from .models import User
-        
-        # Extract name and split it
-        name = request.data.get('name', '').strip()
-        name_parts = name.split(' ', 1)
-        first_name = name_parts[0] if len(name_parts) > 0 else ''
-        last_name = name_parts[1] if len(name_parts) > 1 else ''
-        
+
         user_data = {
             'username': request.data.get('username'),
             'email': request.data.get('email'),
-            'first_name': first_name,
-            'last_name': last_name,
+            'first_name': request.data.get('first_name'),
+            'last_name': request.data.get('last_name')
         }
-        password = request.data.get('password')
+        password = request.data.get('password', 'Stardom123')
         
         if not all([user_data['username'], password, user_data['email']]):
             return Response({'detail': 'username, email, and password are required'}, status=400)
@@ -247,10 +241,10 @@ class TeacherViewSet(viewsets.ModelViewSet):
         # Update user fields
         if 'email' in request.data:
             teacher.user.email = request.data['email']
-        if 'name' in request.data:
-            name_parts = request.data['name'].split(' ', 1)
-            teacher.user.first_name = name_parts[0] if len(name_parts) > 0 else ''
-            teacher.user.last_name = name_parts[1] if len(name_parts) > 1 else ''
+        if 'first_name' in request.data:
+            teacher.user.first_name = request.data['name']
+        if 'last_name' in request.data:
+            teacher.user.last_name = request.data['last_name']
         
         teacher.user.save()
         teacher.save()
