@@ -67,6 +67,18 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save()
         return Response({'status': 'user archived'})
 
+    @action(detail=True, methods=['post'], url_path='reset-password')
+    def reset_password(self, request, pk=None):
+        user = self.get_object()
+        if request.user.role != 'admin':
+            return Response(
+                {'detail': 'Only administrators can reset user passwords.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        user.set_password('Stardom123')
+        user.save()
+        return Response({'status': 'password reset success'})
+
     def partial_update(self, request, *args, **kwargs):
         user = self.get_object()
         # If reactivating the user, also reactivate linked Student or Teacher
@@ -242,7 +254,7 @@ class TeacherViewSet(viewsets.ModelViewSet):
         if 'email' in request.data:
             teacher.user.email = request.data['email']
         if 'first_name' in request.data:
-            teacher.user.first_name = request.data['name']
+            teacher.user.first_name = request.data['first_name']
         if 'last_name' in request.data:
             teacher.user.last_name = request.data['last_name']
         
@@ -284,7 +296,26 @@ class BillingViewSet(viewsets.ModelViewSet):
         billing = self.get_object()
         billing.is_paid = True
         billing.save()
-        return Response({'status': 'billing marked as paid'})
+        serializer = self.get_serializer(billing)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['patch'])
+    def archive(self, request, pk=None):
+        billing = self.get_object()
+        billing.is_active = False
+        billing.save()
+        serializer = self.get_serializer(billing)
+        return Response(serializer.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        billing = self.get_object()
+        if request.data.get('is_active') is True:
+            billing.is_active = True
+            billing.is_paid = False
+            billing.save()
+            serializer = self.get_serializer(billing)
+            return Response(serializer.data)
+        return super().partial_update(request, *args, **kwargs)
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):

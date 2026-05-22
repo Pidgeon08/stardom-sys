@@ -1,38 +1,70 @@
 import { useState, useEffect } from 'react'
 import { Plus, User, Edit, Archive, Loader } from 'lucide-react'
-import { getStudents, createStudent, updateStudent, archiveStudent, getCourses } from '../../api/core'
+import { getStudents, createStudent, updateStudent, archiveStudent, getCourses, getTeachers, getSchedules } from '../../api/core'
+import { useAuth } from '../../context/AuthContext'
 
 export default function MyStudentsTeacher() {
+  const { user } = useAuth()
   const [students, setStudents] = useState([])
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetchStudents()
-    fetchCourses()
-  }, [])
-
-  const fetchCourses = async () => {
-    try {
-      const data = await getCourses()
-      const coursesArray = Array.isArray(data) ? data : (data?.results || data?.data || [])
-      setCourses(coursesArray.filter(c => c.is_active))
-    } catch (err) {
-      console.error('Failed to load courses', err)
+    if (user) {
+      fetchData()
     }
-  }
+  }, [user])
 
-  const fetchStudents = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true)
-      const data = await getStudents()
-      const studentsArray = Array.isArray(data) ? data : (data?.results || data?.data || [])
-      setStudents(studentsArray)
+      const [studentsRes, coursesRes, teachersRes, schedulesRes] = await Promise.all([
+        getStudents(),
+        getCourses(),
+        getTeachers(),
+        getSchedules(),
+      ])
+
+      const toArray = (res) => Array.isArray(res) ? res : (res?.results || res?.data || [])
+      
+      // Identify current teacher
+      const allTeachers = toArray(teachersRes)
+      const currentTeacher = allTeachers.find(t => 
+        (t.user?.id || t.user) == user?.id || 
+        (t.user?.username || t.username) == user?.username
+      )
+      const teacherId = currentTeacher?.id
+
+      // Find students assigned to this teacher in schedules
+      const allSchedules = toArray(schedulesRes)
+      const teacherSchedules = teacherId
+        ? allSchedules.filter(s => (s.teacher?.id || s.teacher) == teacherId)
+        : allSchedules;
+
+      const teacherStudentIds = new Set()
+      teacherSchedules.forEach(s => {
+        const ids = s.student_ids || []
+        ids.forEach(student => {
+          const sid = typeof student === 'object' ? student.id : student;
+          if (sid) teacherStudentIds.add(sid.toString());
+        });
+      })
+
+      // Filter students: if we have teacher-specific schedules, filter. Otherwise show all.
+      const allStudents = toArray(studentsRes)
+      if (teacherId && teacherStudentIds.size > 0) {
+        setStudents(allStudents.filter(s => teacherStudentIds.has(s.id?.toString())))
+      } else {
+        setStudents(allStudents)
+      }
+
+      // Filter courses
+      setCourses(toArray(coursesRes).filter(c => c.is_active))
+
     } catch (err) {
-      setError('Failed to load students')
+      setError('Failed to load data')
       console.error(err)
-      setStudents([])
     } finally {
       setLoading(false)
     }
@@ -56,7 +88,7 @@ export default function MyStudentsTeacher() {
       } else {
         await createStudent(formData)
       }
-      await fetchStudents()
+      await fetchData()
       setShowForm(false)
       setEditingStudent(null)
       setFormData({ username: '', email: '', first_name: '', last_name: '', course_ids: [] })
@@ -82,7 +114,7 @@ export default function MyStudentsTeacher() {
     if (confirm('Are you sure you want to archive this student?')) {
       try {
         await archiveStudent(id)
-        await fetchStudents()
+        await fetchData()
       } catch (err) {
         setError('Failed to archive student')
         console.error(err)

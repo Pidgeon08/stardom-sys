@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit, Clock, ChevronLeft, ChevronRight, X, CalendarDays } from 'lucide-react'
-import { getSchedules, createSchedule, updateSchedule, getCourses, getStudents } from '../../api/core'
+import { getSchedules, createSchedule, updateSchedule, getCourses, getStudents, getTeachers } from '../../api/core'
+import { useAuth } from '../../context/AuthContext'
 
 const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 const sessionTypeAmounts = { Single: 1, Duo: 2, Trio: 3, Group: 4 }
@@ -45,6 +46,8 @@ const timeSlots = generateTimeSlots()
 const sessionTypes = ['Single','Duo','Trio','Group']
 
 export default function MyScheduleTeacher() {
+  const { user } = useAuth()
+  const [teacherId, setTeacherId] = useState(null)
   const [schedules, setSchedules] = useState([])
   const [courses, setCourses]     = useState([])
   const [students, setStudents]   = useState([])
@@ -63,16 +66,34 @@ export default function MyScheduleTeacher() {
   })
 
   useEffect(() => {
-    Promise.all([getSchedules(), getCourses(), getStudents()])
-      .then(([s, c, st]) => {
+    if (!user) return;
+    
+    Promise.all([getSchedules(), getCourses(), getStudents(), getTeachers()])
+      .then(([s, c, st, t]) => {
         const toArray = (res) => Array.isArray(res) ? res : (res?.results || res?.data || [])
-        setSchedules(toArray(s).filter(s => s.active))
-        setCourses(toArray(c).filter(c => c.is_active))
+        
+        const allTeachers = toArray(t)
+        const currentTeacher = allTeachers.find(prof => 
+          (prof.user?.id || prof.user) == user?.id || 
+          (prof.user?.username || prof.username) == user?.username
+        )
+        const profId = currentTeacher?.id
+        setTeacherId(profId)
+
+        const allSchedules = toArray(s).filter(item => item.active);
+        setSchedules(allSchedules)
+        const activeCourses = toArray(c).filter(c => c.is_active)
+        if (currentTeacher && currentTeacher.specializations) {
+          const specNames = currentTeacher.specializations.map(s => s.name.toLowerCase());
+          setCourses(activeCourses.filter(course => specNames.includes(course.name.toLowerCase())));
+        } else {
+          setCourses(activeCourses)
+        }
         setStudents(toArray(st).filter(st => st.is_active))
       })
       .catch(() => alert('Failed to load schedule data'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [user])
 
   const currentDayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][currentDate.getDay()]
   const currentDaySchedules = schedules.filter(s => s.day === currentDayName)
@@ -98,13 +119,18 @@ export default function MyScheduleTeacher() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!teacherId) {
+      alert('Teacher profile not found. Cannot save schedule.')
+      return
+    }
     setIsSaving(true)
     try {
+      const payload = { ...formData, teacher: teacherId, active: true }
       if (editingSchedule) {
-        const { data } = await updateSchedule(editingSchedule.id, formData)
+        const { data } = await updateSchedule(editingSchedule.id, payload)
         setSchedules(schedules.map(s => s.id === data.id ? data : s))
       } else {
-        const { data } = await createSchedule({ ...formData, active: true })
+        const { data } = await createSchedule(payload)
         setSchedules([...schedules, data])
       }
       resetForm()
@@ -217,9 +243,13 @@ export default function MyScheduleTeacher() {
           </thead>
           <tbody>
             {timeSlots.map((slot, i) => {
-              const schedule = schedulesByTime[slot]
+              const schedule = schedulesByTime[slot];
+              const isOwn = schedule && ((schedule.teacher?.id || schedule.teacher) === teacherId);
               return (
-                <tr key={slot} className={`border-b ${i%2===0?'bg-gray-50':'bg-white'} ${schedule?'bg-orange-50':''}`}>
+                <tr
+                  key={slot}
+                  className={`border-b ${i%2===0?'bg-gray-50':'bg-white'} ${schedule ? (isOwn ? 'bg-orange-50' : 'bg-gray-200 opacity-50') : ''}`}
+                >
                   <td className="px-4 py-4 border border-gray-200">
                     <div className="flex items-center gap-2">
                       <Clock size={16} className="text-orange-600" />
@@ -228,9 +258,9 @@ export default function MyScheduleTeacher() {
                   </td>
                   {schedule ? (
                     <>
-                      <td className="px-4 py-4 border border-gray-200 font-semibold text-orange-700">{schedule.course_name}</td>
+                      <td className={`px-4 py-4 border border-gray-200 font-semibold ${isOwn ? 'text-orange-700' : 'text-gray-500'}`}>{schedule.course_name}</td>
                       <td className="px-4 py-4 border border-gray-200">
-                        <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">{schedule.sessionType}</span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${isOwn ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-600'}`}>{schedule.sessionType}</span>
                       </td>
                       <td className="px-4 py-4 border border-gray-200 text-gray-700">
                         {schedule.student_names
@@ -238,9 +268,11 @@ export default function MyScheduleTeacher() {
                           : 'N/A'}
                       </td>
                       <td className="px-4 py-4 border border-gray-200">
-                        <button onClick={() => handleEdit(schedule)} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm">
-                          <Edit size={14} /> Edit
-                        </button>
+                        {isOwn && (
+                          <button onClick={() => handleEdit(schedule)} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm">
+                            <Edit size={14} /> Edit
+                          </button>
+                        )}
                       </td>
                     </>
                   ) : (
@@ -265,7 +297,7 @@ export default function MyScheduleTeacher() {
 
       {/* ── Add / Edit Schedule Modal ── */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center px-6 py-4 border-b">
               <h2 className="text-xl font-bold">{editingSchedule ? 'Edit Schedule' : 'Add New Schedule'}</h2>

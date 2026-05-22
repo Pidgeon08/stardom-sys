@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Plus, Archive, Loader, X, RotateCcw, Trash2 } from 'lucide-react'
-import { getUsers, createUser, archiveUser, deleteUser } from '../../api/core'
+import { Plus, Archive, Loader, X, RotateCcw, Trash2, Key } from 'lucide-react'
+import { getUsers, createUser, archiveUser, deleteUser, resetPassword } from '../../api/core'
 import api from '../../api/axios'
 import ConfirmationModal from '../../components/ConfirmationModal'
 
@@ -20,6 +20,9 @@ export default function UsersAdmin() {
   const [deletingUserId, setDeletingUserId] = useState(null)
   const [deletingLoading, setDeletingLoading] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [resettingUser, setResettingUser] = useState(null)
+  const [resetLoading, setResetLoading] = useState(false)
   const [activeSearch, setActiveSearch] = useState('')
   const [activeRoleFilter, setActiveRoleFilter] = useState('all')
   const [archiveSearch, setArchiveSearch] = useState('')
@@ -161,6 +164,27 @@ export default function UsersAdmin() {
     }
   }
 
+  const handleResetPasswordClick = (user) => {
+    setResettingUser(user)
+    setShowResetModal(true)
+  }
+
+  const confirmResetPassword = async () => {
+    try {
+      setResetLoading(true)
+      await resetPassword(resettingUser.id)
+      setSuccess(`Password for ${resettingUser.first_name} ${resettingUser.last_name} reset to default '${DEFAULT_PASSWORD}' successfully!`)
+      setShowResetModal(false)
+      setResettingUser(null)
+      setTimeout(() => setSuccess(''), 4000)
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to reset password')
+      console.error(err)
+    } finally {
+      setResetLoading(false)
+    }
+  }
+
   const handleCloseModal = () => {
     resetForm()
     setShowModal(false)
@@ -298,7 +322,14 @@ export default function UsersAdmin() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleResetPasswordClick(user)}
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition text-sm font-medium"
+                          title="Reset password"
+                        >
+                          <Key size={15} /> Reset PW
+                        </button>
                         <button
                           onClick={() => handleArchive(user.id)}
                           className="flex items-center gap-1 text-orange-600 hover:text-orange-800 hover:bg-orange-50 px-3 py-1.5 rounded-lg transition text-sm font-medium"
@@ -507,6 +538,21 @@ export default function UsersAdmin() {
           </div>
         </div>
       )}
+
+      {/* Reset Password Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showResetModal}
+        title="Reset Password"
+        message={`Are you sure you want to reset the password for ${resettingUser?.first_name} ${resettingUser?.last_name} (${resettingUser?.username}) to the default password '${DEFAULT_PASSWORD}'?`}
+        confirmText="Reset Password"
+        onConfirm={confirmResetPassword}
+        onCancel={() => {
+          setShowResetModal(false)
+          setResettingUser(null)
+        }}
+        isDangerous={false}
+        isLoading={resetLoading}
+      />
 
       {/* Archive Confirmation Modal */}
       <ConfirmationModal

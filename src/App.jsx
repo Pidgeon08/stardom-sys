@@ -25,7 +25,8 @@ import DashboardStudent from "./pages/student/DashboardStudent";
 import MyCourseStudent from "./pages/student/MyCourseStudent"; 
 import MyScheduleStudent from "./pages/student/MyScheduleStudent";
 import MyBillingStudent from "./pages/student/MyBillingStudent";
-import ProfileStudent from "./pages/student/ProfileStudent";
+import SettingsStudent from "./pages/student/SettingsStudent";
+import SettingsTeacher from "./pages/teacher/SettingsTeacher";
 
 function Unauthorized() {
   const { user } = useAuth();
@@ -93,6 +94,7 @@ export default function App() {
           <Route index element={<DashboardTeacher />} />
           <Route path="schedule" element={<MyScheduleTeacher />} />
           <Route path="students" element={<MyStudentsTeacher />} />
+          <Route path="settings" element={<SettingsTeacher />} />
         </Route>
 
         {/* STUDENT SECTOR */}
@@ -108,7 +110,7 @@ export default function App() {
           <Route path="courses" element={<MyCourseStudent />} />
           <Route path="schedule" element={<MyScheduleStudent />} />
           <Route path="billing" element={<MyBillingStudent />} />
-          <Route path="profile" element={<ProfileStudent />} />
+          <Route path="settings" element={<SettingsStudent />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/login" replace />} />

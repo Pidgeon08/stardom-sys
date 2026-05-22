@@ -1,25 +1,60 @@
 import { useEffect, useState } from 'react'
 import { Music, Loader } from 'lucide-react'
-import { getCourses } from '../../api/core'
+import { getCourses, getSchedules, getStudents } from '../../api/core'
+import { useAuth } from '../../context/AuthContext'
 
 export default function MyCoursesStudent() {
+  const { user } = useAuth()
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchCourses()
-  }, [])
+    if (user) {
+      fetchCourses()
+    }
+  }, [user])
 
   const fetchCourses = async () => {
     try {
-      const data = await getCourses()
-      const coursesArray = Array.isArray(data)
-        ? data
-        : (data?.results || data?.data || [])
+      const [coursesRes, schedulesRes, studentsRes] = await Promise.all([
+        getCourses(),
+        getSchedules(),
+        getStudents()
+      ]);
 
-      setCourses(coursesArray.filter(c => c.is_active))
+      const toArray = (res) => Array.isArray(res) ? res : (res?.results || res?.data || [])
+
+      const allStudents = toArray(studentsRes)
+      const currentStudent = allStudents.find(s =>
+        (s.user?.id || s.user) == user?.id ||
+        (s.user?.username || s.username) == user?.username
+      )
+      const studentId = currentStudent?.id
+
+      const allCourses = toArray(coursesRes)
+      
+      let myCourses = []
+      if (currentStudent?.enrolled_courses && currentStudent.enrolled_courses.length > 0) {
+        const enrolledCourseIds = new Set(currentStudent.enrolled_courses.map(c => c.id))
+        myCourses = allCourses.filter(c => c.is_active && enrolledCourseIds.has(c.id))
+      } else {
+        // Fallback to schedule-based detection if enrolled_courses is not present
+        const allSchedules = toArray(schedulesRes)
+        const mySchedules = studentId 
+          ? allSchedules.filter(s => {
+              const ids = s.student_ids || [];
+              return ids.some(id => 
+                (typeof id === 'object' ? id.id : id) == studentId
+              );
+            })
+          : []
+        const myCourseNames = new Set(mySchedules.map(s => s.course_name).filter(Boolean))
+        myCourses = allCourses.filter(c => c.is_active && myCourseNames.has(c.name))
+      }
+
+      setCourses(myCourses)
     } catch (err) {
-      console.error(err)
+      console.error('Error fetching courses:', err)
     } finally {
       setLoading(false)
     }

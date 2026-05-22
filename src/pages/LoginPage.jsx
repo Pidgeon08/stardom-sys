@@ -11,12 +11,20 @@ export default function LoginPage() {
   const [uname, setUsername] = useState('')
   const [pword, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
-  
+
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { user, login, loading: authLoading } = useAuth()
+
+  // NEW: Redirect if already logged in (handles back button / manual navigation)
+  useEffect(() => {
+    if (!authLoading && user) {
+      // Use replace: true to ensure /login is removed from history
+      navigate(`/${user.role}`, { replace: true })
+    }
+  }, [user, authLoading, navigate])
 
   // Load saved username on mount
   useEffect(() => {
@@ -30,7 +38,7 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    setLoading(true)
+    setIsSubmitting(true)
 
     const startTime = Date.now()
 
@@ -71,25 +79,38 @@ export default function LoginPage() {
       }
 
       // 3. NAVIGATE TO DASHBOARD
-      navigate(`/${user.role}`, { replace: true })
+      navigate(`/${user.role}`)
 
     } catch (err) {
       // Clear ONLY the password field on error as requested
       setPassword('')
-      
+
       const msg = err.response?.data?.non_field_errors?.[0]
         ?? err.response?.data?.detail
         ?? 'Invalid credentials'
       setError(msg)
-      
+
       // Enforce 2 second delay for premium feel even on error
       const elapsed = Date.now() - startTime
       if (elapsed < 2000) {
         await new Promise(r => setTimeout(r, 2000 - elapsed))
       }
     } finally {
-      setLoading(false)
+      setIsSubmitting(false)
     }
+  }
+
+  // NEW: Don't show login form if checking auth or already logged in
+  if (authLoading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center bg-slate-50'>
+        <LoadingModal isOpen={true} message="Restoring session..." />
+      </div>
+    )
+  }
+
+  if (user) {
+    return null
   }
 
   return (
@@ -166,14 +187,14 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={isSubmitting}
             className="w-full bg-orange-600 text-white py-2.5 rounded-lg font-bold hover:bg-orange-700 transition-colors shadow-md disabled:opacity-50"
           >
             LOGIN
           </button>
         </form>
 
-        <LoadingModal isOpen={loading} message="Logging in..." />
+        <LoadingModal isOpen={isSubmitting} message="Logging in..." />
       </div>
     </div>
   )

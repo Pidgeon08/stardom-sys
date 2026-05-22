@@ -11,14 +11,15 @@ import {
   UserCircle,
   Calendar,
   CreditCard,
+  Settings,
 } from 'lucide-react'
 
 const NAV_ITEMS = {
   // ================= ADMIN =================
   admin: [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/admin/teachers', label: 'Teachers', icon: UserCircle },
     { to: '/admin/courses', label: 'Courses', icon: BookOpen },
+    { to: '/admin/teachers', label: 'Teachers', icon: UserCircle },
     { to: '/admin/students', label: 'Students', icon: Users },
     { to: '/admin/users', label: 'Users', icon: UserCircle },
     { to: '/admin/schedule', label: 'Schedule', icon: Calendar },
@@ -30,6 +31,7 @@ const NAV_ITEMS = {
     { to: '/teacher', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/teacher/schedule', label: 'My Schedule', icon: Calendar },
     { to: '/teacher/students', label: 'My Students', icon: Users },
+    { to: '/teacher/settings', label: 'Settings', icon: Settings },
   ],
 
   // ================= STUDENT =================
@@ -38,7 +40,7 @@ const NAV_ITEMS = {
     { to: '/student/courses', label: 'My Courses', icon: BookOpen },
     { to: '/student/schedule', label: 'My Schedule', icon: Calendar },
     { to: '/student/billing', label: 'My Billing', icon: CreditCard },
-    { to: '/student/profile', label: 'Profile', icon: UserCircle },
+    { to: '/student/settings', label: 'Settings', icon: Settings },
   ],
 }
 
@@ -60,7 +62,7 @@ export default function Layout() {
   const navigate = useNavigate()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-  if (loading) return null; 
+  if (loading) return null;
   // Don't redirect if we are in the middle of logging out, otherwise the delay won't work
   if (!user && !isLoggingOut) return <Navigate to="/login" replace />;
 
@@ -72,15 +74,15 @@ export default function Layout() {
   const handleLogout = async () => {
     setIsLoggingOut(true)
     const startTime = Date.now()
-    
+
     await logout()
-    
+
     // Enforce 2 second delay as requested
     const elapsed = Date.now() - startTime
     if (elapsed < 2000) {
       await new Promise(r => setTimeout(r, 2000 - elapsed))
     }
-    
+
     setIsLoggingOut(false)
     navigate('/login', { replace: true })
   }
@@ -103,4 +105,4 @@ export default function Layout() {
       <LoadingModal isOpen={isLoggingOut} message="Logging out..." />
     </div>
   )
-}
+}

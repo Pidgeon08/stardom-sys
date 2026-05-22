@@ -6,6 +6,7 @@ export const createUser = (data) => api.post('/users/', data)
 export const updateUser = (id, data) => api.patch(`/users/${id}/`, data)
 export const deleteUser = (id) => api.delete(`/users/${id}/`)
 export const archiveUser = (id) => api.patch(`/users/${id}/archive/`)
+export const resetPassword = (id) => api.post(`/users/${id}/reset-password/`)
 
 // Courses
 export const getCourses   = ()        => api.get('/courses/')
@@ -36,3 +37,8 @@ export const getBillings    = ()        => api.get('/billings/')
 export const createBilling  = (data)    => api.post('/billings/', data)
 export const updateBilling  = (id,data) => api.patch(`/billings/${id}/`, data)
 export const markBillingPaid= (id)      => api.patch(`/billings/${id}/mark_paid/`)
+export const archiveBilling = (id)      => api.patch(`/billings/${id}/archive/`)
+export const deleteBilling  = (id)      => api.delete(`/billings/${id}/`)
+
+// Auth
+export const changePassword = (id, data) => api.post(`/users/${id}/change-password/`, data)

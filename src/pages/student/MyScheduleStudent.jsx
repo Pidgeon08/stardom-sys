@@ -2,25 +2,47 @@ import { useEffect, useState } from 'react'
 
 import { Clock, CalendarDays, Loader } from 'lucide-react'
 
-import { getSchedules } from '../../api/core'
+import { getSchedules, getStudents } from '../../api/core'
+import { useAuth } from '../../context/AuthContext'
 
 export default function MyScheduleStudent() {
+  const { user } = useAuth()
   const [schedules, setSchedules] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchSchedules()
-  }, [])
+    if (user) {
+      fetchSchedules()
+    }
+  }, [user])
 
   const fetchSchedules = async () => {
     try {
-      const data = await getSchedules()
+      const [schedulesRes, studentsRes] = await Promise.all([
+        getSchedules(),
+        getStudents()
+      ])
 
-      const schedulesArray = Array.isArray(data)
-        ? data
-        : (data?.results || data?.data || [])
+      const toArray = (res) => Array.isArray(res) ? res : (res?.results || res?.data || [])
 
-      setSchedules(schedulesArray.filter(s => s.active))
+      const allStudents = toArray(studentsRes)
+      const currentStudent = allStudents.find(s =>
+        (s.user?.id || s.user) == user?.id ||
+        (s.user?.username || s.username) == user?.username
+      )
+      const studentId = currentStudent?.id
+
+      const allSchedules = toArray(schedulesRes)
+      const mySchedules = studentId
+        ? allSchedules.filter(s => {
+            const ids = s.student_ids || [];
+            return ids.some(id => 
+              (typeof id === 'object' ? id.id : id) == studentId
+            );
+          })
+        : []
+
+      setSchedules(mySchedules.filter(s => s.active))
     } catch (err) {
       console.error(err)
     } finally {

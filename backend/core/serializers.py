@@ -85,7 +85,16 @@ class BillingSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source='student.user.get_full_name', read_only=True)
     course_name = serializers.CharField(source='course.name', read_only=True)
     payment_type_display = serializers.CharField(source='get_payment_type_display', read_only=True)
+    status = serializers.SerializerMethodField()
+
+    def get_status(self, obj):
+        from django.utils import timezone
+        if obj.is_paid:
+            return "Paid"
+        if obj.due_date < timezone.now().date():
+            return "Overdue"
+        return "Pending"
     
     class Meta:
         model = Billing
-        fields = ['id', 'student', 'student_name', 'course', 'course_name', 'amount', 'payment_type', 'payment_type_display', 'is_paid', 'due_date', 'created_at']
+        fields = ['id', 'student', 'student_name', 'course', 'course_name', 'amount', 'payment_type', 'payment_type_display', 'is_paid', 'due_date', 'created_at', 'is_active', 'status']

@@ -96,8 +96,14 @@ class Billing(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES, default='fullpayment', null=True, blank=True)
     is_paid = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
     due_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.is_paid:
+            self.is_active = False
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Billing for {self.student} - {self.amount} ({self.get_payment_type_display()})"
