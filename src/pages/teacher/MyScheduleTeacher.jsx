@@ -65,35 +65,42 @@ export default function MyScheduleTeacher() {
     day: 'Monday', time: '7:30 AM', course: '', sessionType: 'Single', student_ids: []
   })
 
+  const [teacherError, setTeacherError] = useState('');
+
   useEffect(() => {
     if (!user) return;
     
     Promise.all([getSchedules(), getCourses(), getStudents(), getTeachers()])
       .then(([s, c, st, t]) => {
-        const toArray = (res) => Array.isArray(res) ? res : (res?.results || res?.data || [])
+        const toArray = (res) => Array.isArray(res) ? res : (res?.results || res?.data || []);
         
-        const allTeachers = toArray(t)
-        const currentTeacher = allTeachers.find(prof => 
-          (prof.user?.id || prof.user) == user?.id || 
+        const allTeachers = toArray(t);
+        const currentTeacher = allTeachers.find(prof =>
+          (prof.user?.id || prof.user) == user?.id ||
           (prof.user?.username || prof.username) == user?.username
-        )
-        const profId = currentTeacher?.id
-        setTeacherId(profId)
-
+        );
+        if (!currentTeacher) {
+          setTeacherError('Your teacher profile could not be found. It may have been archived.');
+          setTeacherId(null);
+        } else {
+          const profId = currentTeacher?.id;
+          setTeacherId(profId);
+        }
+        
         const allSchedules = toArray(s).filter(item => item.active);
-        setSchedules(allSchedules)
-        const activeCourses = toArray(c).filter(c => c.is_active)
+        setSchedules(allSchedules);
+        const activeCourses = toArray(c).filter(c => c.is_active);
         if (currentTeacher && currentTeacher.specializations) {
           const specNames = currentTeacher.specializations.map(s => s.name.toLowerCase());
           setCourses(activeCourses.filter(course => specNames.includes(course.name.toLowerCase())));
         } else {
-          setCourses(activeCourses)
+          setCourses(activeCourses);
         }
-        setStudents(toArray(st).filter(st => st.is_active))
+        setStudents(toArray(st).filter(st => st.is_active));
       })
       .catch(() => alert('Failed to load schedule data'))
-      .finally(() => setLoading(false))
-  }, [user])
+      .finally(() => setLoading(false));
+  }, [user]);
 
   const currentDayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][currentDate.getDay()]
   const currentDaySchedules = schedules.filter(s => s.day === currentDayName)
@@ -194,6 +201,8 @@ export default function MyScheduleTeacher() {
 
   if (loading) return <div className="p-8 text-gray-500">Loading schedule...</div>
 
+  if (teacherError) return <div className="p-8 text-red-600">{teacherError}</div>
+
   return (
     <div className="p-8 h-full overflow-y-auto">
       {/* Header */}
@@ -235,6 +244,7 @@ export default function MyScheduleTeacher() {
           <thead className="bg-orange-600 text-white">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold border border-orange-500">Time Slot</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold border border-orange-500">Teacher</th>
               <th className="px-4 py-3 text-left text-sm font-semibold border border-orange-500">Course</th>
               <th className="px-4 py-3 text-left text-sm font-semibold border border-orange-500">Session Type</th>
               <th className="px-4 py-3 text-left text-sm font-semibold border border-orange-500">Student(s)</th>
@@ -258,6 +268,7 @@ export default function MyScheduleTeacher() {
                   </td>
                   {schedule ? (
                     <>
+                      <td className="px-4 py-4 border border-gray-200 text-sm font-medium text-gray-600">{schedule.teacher?.user?.username || schedule.teacher?.name || 'Other'}</td>
                       <td className={`px-4 py-4 border border-gray-200 font-semibold ${isOwn ? 'text-orange-700' : 'text-gray-500'}`}>{schedule.course_name}</td>
                       <td className="px-4 py-4 border border-gray-200">
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${isOwn ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-600'}`}>{schedule.sessionType}</span>
@@ -277,7 +288,7 @@ export default function MyScheduleTeacher() {
                     </>
                   ) : (
                     <>
-                      <td className="px-4 py-4 border border-gray-200 text-gray-400 text-center" colSpan={3}>Available</td>
+                       <td className="px-4 py-4 border border-gray-200 text-gray-400 text-center" colSpan={5}>Available</td>
                       <td className="px-4 py-4 border border-gray-200">
                         <button
                           onClick={() => openAddForm(slot, currentDayName)}

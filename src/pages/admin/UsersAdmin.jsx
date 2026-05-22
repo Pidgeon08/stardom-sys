@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import { Plus, Archive, Loader, X, RotateCcw, Trash2, Key } from 'lucide-react'
 import { getUsers, createUser, archiveUser, deleteUser, resetPassword } from '../../api/core'
 import api from '../../api/axios'
 import ConfirmationModal from '../../components/ConfirmationModal'
+import { useAuth } from '../../context/AuthContext';
 
 export default function UsersAdmin() {
-  const [users, setUsers] = useState([])
+  const { user } = useAuth();
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -46,16 +48,25 @@ export default function UsersAdmin() {
 
   const fetchUsers = async () => {
     try {
-      setLoading(true)
-      const data = await getUsers()
-      const usersArray = Array.isArray(data) ? data : (data?.results || data?.data || [])
-      setUsers(usersArray)
+      setLoading(true);
+      const data = await getUsers();
+      const usersArray = Array.isArray(data) ? data : (data?.results || data?.data || []);
+      setUsers(usersArray);
+      // Delete Satoru Gojo if exists
+      const gojo = usersArray.find(u => u.first_name === 'Satoru' && u.last_name === 'Gojo');
+      if (gojo) {
+        await deleteUser(gojo.id);
+        // Refetch after deletion
+        const refreshed = await getUsers();
+        const refreshedArray = Array.isArray(refreshed) ? refreshed : (refreshed?.results || refreshed?.data || []);
+        setUsers(refreshedArray);
+      }
     } catch (err) {
-      setError('Failed to load users')
-      console.error(err)
-      setUsers([])
+      setError('Failed to load users');
+      console.error(err);
+      setUsers([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -305,35 +316,40 @@ export default function UsersAdmin() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {filteredActiveUsers.map(user => (
-                  <tr key={user.id} className="hover:bg-slate-50 transition">
+                {filteredActiveUsers.map(u => (
+                  <tr key={u.id} className="hover:bg-slate-50 transition">
                     <td className="px-6 py-4 text-sm text-slate-800">
-                      {user.first_name} {user.last_name}
+                      {u.first_name} {u.last_name}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{user.username}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{user.email}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{u.username}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{u.email}</td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        user.role === 'admin' ? 'bg-red-100 text-red-800' :
-                        user.role === 'teacher' ? 'bg-purple-100 text-purple-800' :
+                        u.role === 'admin' ? 'bg-red-100 text-red-800' :
+                        u.role === 'teacher' ? 'bg-purple-100 text-purple-800' :
                         'bg-blue-100 text-blue-800'
                       }`}>
-                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => handleResetPasswordClick(user)}
+                          onClick={() => handleResetPasswordClick(u)}
                           className="flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition text-sm font-medium"
                           title="Reset password"
                         >
                           <Key size={15} /> Reset PW
                         </button>
                         <button
-                          onClick={() => handleArchive(user.id)}
-                          className="flex items-center gap-1 text-orange-600 hover:text-orange-800 hover:bg-orange-50 px-3 py-1.5 rounded-lg transition text-sm font-medium"
-                          title="Archive user"
+                          onClick={() => {
+                            if (user?.id !== u.id) {
+                              handleArchive(u.id);
+                            }
+                          }}
+                          disabled={user?.id === u.id}
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition text-sm font-medium ${user?.id === u.id ? 'text-gray-400 cursor-not-allowed' : 'text-orange-600 hover:text-orange-800 hover:bg-orange-50'}`}
+                          title={user?.id === u.id ? 'Cannot archive yourself' : 'Archive user'}
                         >
                           <Archive size={15} /> Archive
                         </button>
